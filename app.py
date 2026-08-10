@@ -234,11 +234,30 @@ if nav3.button("Next", use_container_width=True):
 
 disabled = not core.PYAUTOGUI_OK
 fill_one = st.button("▶ Fill this record", type="primary", disabled=disabled)
-with st.container():
-    gap = st.number_input("Pause between records when filling all (sec)", 1, 60, 3)
-    fill_all = st.button(
-        "▶▶ Fill ALL records (test with one first!)", disabled=disabled
-    )
+
+st.markdown("---")
+gap = st.number_input("Pause between records when filling several (sec)", 1, 60, 3)
+
+start_at = st.number_input(
+    "Start filling from record #",
+    min_value=1,
+    max_value=len(records),
+    value=i + 1,
+    step=1,
+    help="Runs from this record through the last one in the list — useful "
+    "for resuming a batch that stopped partway through, without re-filling "
+    "records you already did.",
+)
+remaining = len(records) - int(start_at) + 1
+fill_from_here = st.button(
+    f"▶▶ Fill from record {int(start_at)} to the end ({remaining} record(s))",
+    disabled=disabled,
+)
+
+fill_all = st.button(
+    "▶▶▶ Fill ALL records from the beginning (test with one first!)",
+    disabled=disabled,
+)
 
 
 def run_fill(indices):
@@ -269,10 +288,14 @@ def run_fill(indices):
                 time.sleep(int(gap))
         ph.success(f"Done — {len(indices)} record(s) filled.")
     except Exception as exc:
-        ph.error(f"Stopped: {exc}")
+        # Report exactly which record it was on, so a retry/resume knows
+        # where to set "Start filling from record #".
+        ph.error(f"Stopped at record {idx + 1} ({records[idx]}): {exc}")
 
 
 if fill_one:
     run_fill([st.session_state.idx])
+if fill_from_here:
+    run_fill(list(range(int(start_at) - 1, len(records))))
 if fill_all:
     run_fill(list(range(len(records))))
