@@ -1,0 +1,6 @@
+streamlit>=1.30
+pyautogui>=0.9.54
+pyperclip>=1.8
+pandas>=2.0
+openpyxl>=3.1
+uiautomation>=2.0 ; sys_platform == "win32"

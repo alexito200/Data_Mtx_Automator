@@ -1,0 +1,262 @@
+"""
+app.py — Register Form Filler (Streamlit)
+==========================================
+Loads a list of Register # values (Excel upload or pasted text) and types
+each one into a browser form for you:
+
+    Register # -> Enter -> "1" -> Enter -> Tab x7 -> "081926" -> Enter x2
+
+>>> IMPORTANT: run this LOCALLY <<<
+    streamlit run app.py
+The app simulates keystrokes on the computer it runs on. That only reaches
+your browser form if the app runs on YOUR machine. It will NOT work deployed
+to Streamlit Community Cloud or any remote server (no desktop to type into).
+"""
+
+import time
+
+import pandas as pd
+import streamlit as st
+
+import filler_core as core
+
+st.set_page_config(page_title="Register Form Filler", layout="wide")
+st.title("Register Form Filler")
+
+# --------------------------------------------------------------------------- #
+# How it works
+# --------------------------------------------------------------------------- #
+with st.expander("How this works — read me first", expanded=False):
+    st.markdown(
+        """
+**Run locally.** Start it with `streamlit run app.py` on the same computer you
+enter data on. It types keystrokes into your desktop, so it can't work on a
+remote/cloud server.
+
+**The flow for each record**
+1. Load your data (upload the `.xlsx` or paste one Register # per line).
+2. Click into the **Register #** field of the form in your browser.
+3. Pick a record here and click **Fill** — you get a short countdown to
+   switch back to the browser, then it enters: *Register # → Enter → "1" →
+   Enter → Tab ×7 → "081926" → Enter ×2*.
+
+**Field 2/3 values, the Tab count, and the final Enter count are all
+editable below** in case the destination form changes.
+
+**Abort anytime:** slam your mouse into any screen corner to stop typing.
+        """
+    )
+
+if not core.PYAUTOGUI_OK:
+    st.error(
+        "Keyboard control is unavailable here, so filling is disabled. "
+        "Install requirements and run locally on a machine with a display "
+        "(`pip install -r requirements.txt` then `streamlit run app.py`). "
+        f"Details: {core.PYAUTOGUI_ERR}"
+    )
+
+# --------------------------------------------------------------------------- #
+# 1) Load data
+# --------------------------------------------------------------------------- #
+st.subheader("1) Load your data")
+method = st.radio(
+    "Data source",
+    ["Upload Excel (.xlsx)", "Paste data"],
+    horizontal=True,
+    help="Excel upload is recommended — it matches your existing files.",
+)
+
+records = None
+label = None
+
+if method.startswith("Upload"):
+    up = st.file_uploader("Upload your Register # file", type=["xlsx", "xlsm"])
+    if up is not None:
+        try:
+            label, records = core.parse_excel(up)
+        except Exception as exc:
+            st.error(f"Could not read that file: {exc}")
+else:
+    txt = st.text_area(
+        "Paste Register # values — one per line",
+        height=160,
+        placeholder="9883840-2\n9892320-4\n9887672-5",
+    )
+    skip_first = st.checkbox("First pasted row is a header (skip it)", value=False)
+    if txt.strip():
+        rows = core.parse_pasted(txt)
+        if skip_first and rows:
+            rows = rows[1:]
+        records = rows
+        label = "Register #"
+
+# Persist across reruns
+if records:
+    st.session_state["records"] = records
+    st.session_state["label"] = label
+
+records = st.session_state.get("records")
+label = st.session_state.get("label") or "Register #"
+
+if not records:
+    st.info("Load a file or paste data to begin.")
+    st.stop()
+
+st.dataframe(pd.DataFrame(records, columns=[label]), use_container_width=True, height=240)
+st.caption(f"{len(records)} register number(s) loaded.")
+
+# --------------------------------------------------------------------------- #
+# 2) Fixed values & field navigation
+# --------------------------------------------------------------------------- #
+st.subheader("2) Fixed values & field navigation")
+c1, c2 = st.columns(2)
+second_value = c1.text_input(
+    "Value typed after Register # (field 2)",
+    "1",
+    help="Typed the same for every record, then Enter is pressed.",
+)
+third_value = c2.text_input(
+    "Value typed after the Tab-jump (field 3)",
+    "081926",
+    help="Typed the same for every record, then Enter is pressed (see the "
+    "Enter-count field below).",
+)
+
+c3, c4 = st.columns(2)
+tab_count = c3.number_input(
+    "Tabs to reach field 3",
+    1, 30, 7,
+    help="How many times Tab is pressed after field 2 to reach field 3.",
+)
+enters_after_third = c4.number_input(
+    "Enter presses after field 3",
+    1, 5, 2,
+    help="The destination form needs Enter pressed twice by default to "
+    "finish the record.",
+)
+
+entry_mode_choice = st.radio(
+    "How to enter the Register # itself",
+    ["Paste (Ctrl/Cmd+V)", "Type it"],
+    horizontal=True,
+    help="Paste copies the value to the clipboard and pastes it — matches "
+    "\"copy and paste\" in the described flow. Switch to Type if the form "
+    "doesn't accept pasted input well.",
+)
+register_entry_mode = "paste" if entry_mode_choice.startswith("Paste") else "type"
+if register_entry_mode == "paste" and not core.PYPERCLIP_OK:
+    st.warning(
+        "Paste mode needs the 'pyperclip' package, which isn't installed yet. "
+        "Install it (pip install pyperclip) and restart, or switch to "
+        "'Type it' for now."
+    )
+
+# --------------------------------------------------------------------------- #
+# 3) Timing
+# --------------------------------------------------------------------------- #
+st.subheader("3) Timing")
+t1, t2, t3 = st.columns(3)
+secs = t1.number_input("Seconds to switch to your form", 1, 30, 5)
+interval = t2.number_input(
+    "Typing speed (sec/char)", 0.0, 0.5, 0.02, step=0.01,
+    help="Delay between characters for typed fields (not used for a pasted "
+    "Register #). Raise a little if a field's characters come out jumbled.",
+)
+field_delay = t3.number_input(
+    "Delay between fields (sec)", 0.0, 1.0, 0.05, step=0.01,
+    help="Pause after each field, Tab, and Enter so the form's scripts can "
+    "keep up. If values are landing in the wrong place, raise this.",
+)
+
+with st.expander("Tab glitch fix (optional)"):
+    st.caption(
+        "If the destination form ever swallows a Tab during the 7-tab jump, "
+        "field 3 lands in the wrong box. Two ways to guard against it:"
+    )
+    detect_text_field = st.checkbox(
+        "Auto-detect lost focus and re-Tab (recommended, Windows)", value=False,
+        help="After the Tab-jump, check what has keyboard focus. If the "
+        "caret is NOT in a text field (it 'disappears' onto a button/label), "
+        "send another Tab, up to the cap below.",
+    )
+    max_extra_tabs = st.number_input(
+        "Max extra Tabs to try", 1, 5, 2,
+        help="Safety cap so a misread can never run past the row.",
+    )
+    if detect_text_field and not core.UIA_OK:
+        st.warning(
+            "Focus detection needs the 'uiautomation' package, which isn't "
+            "available yet. Install it (no admin needed): "
+            "pip install uiautomation — then fully restart. Until then this "
+            "toggle does nothing extra."
+        )
+    st.markdown("---")
+    st.caption(
+        "Simplest fallback: if the form always eats exactly one Tab, just "
+        "raise \"Tabs to reach field 3\" above by one instead of relying on "
+        "detection."
+    )
+
+# --------------------------------------------------------------------------- #
+# 4) Fill
+# --------------------------------------------------------------------------- #
+st.subheader("4) Fill")
+
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
+st.session_state.idx = max(0, min(st.session_state.idx, len(records) - 1))
+i = st.session_state.idx
+
+nav1, nav2, nav3 = st.columns([1, 3, 1])
+if nav1.button("Prev", use_container_width=True):
+    st.session_state.idx = max(0, i - 1)
+    st.rerun()
+nav2.markdown(f"**Record {i + 1} of {len(records)}** — {records[i]}")
+if nav3.button("Next", use_container_width=True):
+    st.session_state.idx = min(len(records) - 1, i + 1)
+    st.rerun()
+
+disabled = not core.PYAUTOGUI_OK
+fill_one = st.button("▶ Fill this record", type="primary", disabled=disabled)
+with st.container():
+    gap = st.number_input("Pause between records when filling all (sec)", 1, 60, 3)
+    fill_all = st.button(
+        "▶▶ Fill ALL records (test with one first!)", disabled=disabled
+    )
+
+
+def run_fill(indices):
+    ph = st.empty()
+    for s in range(int(secs), 0, -1):
+        ph.warning(
+            f"Switch to your form and click the Register # field… starting "
+            f"in {s}s (slam the mouse into a screen corner to abort)"
+        )
+        time.sleep(1)
+    try:
+        for k, idx in enumerate(indices):
+            ph.info(f"Typing record {idx + 1}: {records[idx]}…")
+            core.type_record(
+                records[idx],
+                second_value=second_value,
+                third_value=third_value,
+                tab_count=int(tab_count),
+                enters_after_third=int(enters_after_third),
+                register_entry_mode=register_entry_mode,
+                interval=float(interval),
+                field_delay=float(field_delay),
+                detect_text_field=detect_text_field,
+                max_extra_tabs=int(max_extra_tabs),
+            )
+            if k < len(indices) - 1:
+                ph.info(f"Record {idx + 1} done. Next in {int(gap)}s…")
+                time.sleep(int(gap))
+        ph.success(f"Done — {len(indices)} record(s) filled.")
+    except Exception as exc:
+        ph.error(f"Stopped: {exc}")
+
+
+if fill_one:
+    run_fill([st.session_state.idx])
+if fill_all:
+    run_fill(list(range(len(records))))
