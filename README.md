@@ -50,8 +50,17 @@ Platform notes for the keystroke part (pyautogui / pyperclip):
    field.
 3. Back in the app, pick a record and click **Fill**. You get a short
    countdown to switch to the browser, then it enters the record.
-4. Use **Prev / Next** to step through records, or **Fill ALL** to run the
-   whole list with a pause between each (test a single record first).
+4. Use **Prev / Next** to step through records, **Fill ALL** to run the
+   whole list from the top, or set **"Start filling from record #"** and
+   click **Fill from record N to the end** to run a range instead — handy
+   for resuming a batch that stopped partway through (test a single record
+   first).
+
+**If a batch run stops partway through** (error, mouse-corner abort, closed
+laptop), the status message names the exact record it stopped on — e.g.
+*"Stopped at record 214 (9842841-0): …"*. Set **"Start filling from record
+#"** to that same number and click **Fill from record N to the end** to
+pick back up without re-entering anything already done.
 
 **Abort anytime:** slam the mouse into any screen corner.
 
@@ -93,6 +102,11 @@ plain text with the hyphen included.
 For pasted data, put one Register # per line. If a line has extra
 Tab/comma-separated columns, only the first is used. Tick *"First pasted row
 is a header"* if you include a header line.
+
+**Duplicates:** right after loading (either method), *"Remove duplicate
+Register # values"* is on by default — it keeps each value's first
+occurrence and drops later repeats, and shows how many were removed. Untick
+it to keep every row, including repeats.
 
 ---
 
