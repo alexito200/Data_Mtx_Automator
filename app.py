@@ -102,8 +102,24 @@ if not records:
     st.info("Load a file or paste data to begin.")
     st.stop()
 
+dedupe_on = st.checkbox(
+    "Remove duplicate Register # values (keep the first occurrence)",
+    value=True,
+    help="Applies to whichever loading method you used above, before the "
+    "preview and the fill list below.",
+)
+removed = 0
+if dedupe_on:
+    records, removed = core.dedupe(records)
+
 st.dataframe(pd.DataFrame(records, columns=[label]), use_container_width=True, height=240)
-st.caption(f"{len(records)} register number(s) loaded.")
+if dedupe_on and removed:
+    st.caption(
+        f"{len(records)} unique register number(s) loaded "
+        f"({removed} duplicate(s) removed)."
+    )
+else:
+    st.caption(f"{len(records)} register number(s) loaded.")
 
 # --------------------------------------------------------------------------- #
 # 2) Fixed values & field navigation

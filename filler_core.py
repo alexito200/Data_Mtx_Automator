@@ -163,6 +163,21 @@ def parse_pasted(text: str) -> List[str]:
     return records
 
 
+def dedupe(records: List[str]) -> Tuple[List[str], int]:
+    """Remove duplicate Register # values, keeping each one's first
+    occurrence and otherwise preserving the original order.
+
+    Returns (deduped_records, number_removed).
+    """
+    seen = set()
+    out: List[str] = []
+    for r in records:
+        if r not in seen:
+            seen.add(r)
+            out.append(r)
+    return out, len(records) - len(out)
+
+
 # --------------------------------------------------------------------------- #
 # Focus detection (Windows UI Automation)
 # --------------------------------------------------------------------------- #
