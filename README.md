@@ -4,9 +4,9 @@ A small local Streamlit app that types a list of **Register #** values into a
 browser form for you. For each record it enters the Register #, presses
 **Enter**, types **"1"**, presses **Enter**, presses **Tab seven times** to
 reach field 8, types field 8's value, then (since the form auto-advances) it
-goes straight into typing field 9's value with no extra Tab, and finishes
-with **Enter twice**. The typed values, the Tab counts, and the final Enter
-count are all adjustable from the app.
+selects whatever's already in field 9 (Ctrl/Cmd+A) and types over it, and
+finishes with **Enter twice**. The typed values, the Tab counts, and the
+final Enter count are all adjustable from the app.
 
 ---
 
@@ -74,7 +74,7 @@ pick back up without re-entering anything already done.
 | 1 | Register # is entered into the focused field, then **Enter** |
 | 2 | The fixed **field 2 value** ("1" by default) is typed, then **Enter** |
 | 3 | **Tab** is pressed 7 times (adjustable) to reach field 8, then the fixed **field 8 value** ("081926" by default) is typed |
-| 3b *(optional)* | No Tab needed — the form highlights field 9 on its own — then the fixed **field 9 value** is typed straight away |
+| 3b *(optional)* | No Tab needed — the form highlights field 9 on its own — then **Ctrl/Cmd+A** selects whatever's there, then the fixed **field 9 value** is typed over it |
 | 4 | **Enter** is pressed twice (adjustable) |
 
 Step 3b is controlled by **"Also fill a field right after field 8"** — on by

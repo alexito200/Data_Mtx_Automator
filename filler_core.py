@@ -65,8 +65,8 @@ except Exception as exc:
     UIA_OK = False
     UIA_ERR = str(exc)
 
-# macOS pastes with Cmd+V, not Ctrl+V; everywhere else it's Ctrl+V.
-PASTE_MODIFIER = "command" if sys.platform == "darwin" else "ctrl"
+# macOS uses Cmd for clipboard/selection shortcuts; everywhere else it's Ctrl.
+CTRL_OR_CMD = "command" if sys.platform == "darwin" else "ctrl"
 
 
 # --------------------------------------------------------------------------- #
@@ -281,7 +281,8 @@ def type_record(
            field8_value     ("081926" by default)
         3b. [optional, fill_field9] Tab x tabs_after_field8 (0 by default —
             the form highlights field 9 on its own, no Tab needed) to reach
-            field 9, then field9_value
+            field 9, then Ctrl+A/Cmd+A to select whatever's already in it,
+            then field9_value (typing over the selection replaces it)
         4. Enter x final_enters (2 by default) — fires after step 3b when
            fill_field9 is on, otherwise right after step 3
 
@@ -297,7 +298,9 @@ def type_record(
     why final_enters always runs last regardless of the toggle.
     tabs_after_field8 defaults to 0 because the destination form moves focus
     to field 9 by itself once field 8 is filled — set it above 0 only if
-    that stops being true.
+    that stops being true. Once there, a select-all (Ctrl+A / Cmd+A on
+    macOS) runs before field9_value is typed, so it overwrites whatever's
+    already in the field instead of getting inserted alongside it.
 
     field_delay pauses briefly after each typed/pasted value, after each
     Enter, and after each Tab. On forms that run JavaScript per field
@@ -326,6 +329,10 @@ def type_record(
 
     def enter_once():
         pyautogui.press("enter")
+        settle()
+
+    def select_all():
+        pyautogui.hotkey(CTRL_OR_CMD, "a")
         settle()
 
     def tab_once():
@@ -358,7 +365,7 @@ def type_record(
                     "(pip install pyperclip), or switch to Type mode."
                 )
             pyperclip.copy(value)
-            pyautogui.hotkey(PASTE_MODIFIER, "v")
+            pyautogui.hotkey(CTRL_OR_CMD, "v")
         else:
             pyautogui.write(value, interval=interval)
         settle()
@@ -381,9 +388,11 @@ def type_record(
     put_typed(field8_value)
 
     # Step 3b (optional): field 9 — no Tab needed by default, the form
-    # auto-highlights it once field 8 is filled
+    # auto-highlights it once field 8 is filled; select-all first so the
+    # typed value replaces whatever's already there
     if fill_field9:
         tab_jump(tabs_after_field8)
+        select_all()
         put_typed(field9_value)
 
     # Step 4: Enter(s)
