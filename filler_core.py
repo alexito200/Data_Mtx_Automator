@@ -228,6 +228,9 @@ def type_record(
     second_value: str = "1",
     third_value: str = "081926",
     tab_count: int = 7,
+    fill_fourth_field: bool = False,
+    fourth_value: str = "",
+    tabs_after_third: int = 1,
     enters_after_third: int = 2,
     register_entry_mode: str = "paste",  # "paste" or "type"
     interval: float = 0.0,
@@ -241,14 +244,21 @@ def type_record(
         1. Register #     -> Enter
         2. second_value    ("1" by default)      -> Enter
         3. Tab x tab_count (7 by default) to reach the next field, then
-           third_value     ("081926" by default) -> Enter x enters_after_third
-                                                     (2 by default)
+           third_value     ("081926" by default)
+        3b. [optional, fill_fourth_field] Tab x tabs_after_third (1 by
+            default) to reach one more field, then fourth_value
+        4. Enter x enters_after_third (2 by default)
 
     register_entry_mode="paste" copies `register` to the clipboard and sends
     Ctrl+V (Cmd+V on macOS) instead of typing it character by character,
-    matching "copy and paste" for that field specifically. second_value and
-    third_value are always typed with pyautogui, matching "type" in the
-    described flow.
+    matching "copy and paste" for that field specifically. second_value,
+    third_value, and fourth_value are always typed with pyautogui, matching
+    "type" in the described flow.
+
+    fill_fourth_field toggles step 3b on/off. When off, the sequence is
+    exactly steps 1-3 then the Enter(s) — nothing about the existing flow
+    changes. When on, one more Tab-hop and one more fixed value are inserted
+    right before those same Enter(s).
 
     field_delay pauses briefly after each typed/pasted value, after each
     Enter, and after each Tab. On forms that run JavaScript per field
@@ -256,12 +266,13 @@ def type_record(
     small delay (e.g. 0.05-0.1s) lets the form keep up.
 
     detect_text_field (Windows only, needs `uiautomation`) is the same
-    glitch-recovery idea as the original filler: after the Tab-jump, check
-    whether focus actually landed in a text field. If it didn't (some
-    external forms swallow a Tab), send extra Tabs — up to `max_extra_tabs`
-    — until it does, or until the check itself can't be read. Off by default;
-    if a form always eats exactly the same number of Tabs, it's simpler to
-    just raise `tab_count` instead of turning this on.
+    glitch-recovery idea as the original filler: after a Tab-jump (step 3's
+    and, if enabled, step 3b's), check whether focus actually landed in a
+    text field. If it didn't (some external forms swallow a Tab), send extra
+    Tabs — up to `max_extra_tabs` — until it does, or until the check itself
+    can't be read. Off by default; if a form always eats exactly the same
+    number of Tabs, it's simpler to just raise `tab_count` /
+    `tabs_after_third` instead of turning this on.
     """
     if not PYAUTOGUI_OK:
         raise RuntimeError(
@@ -280,6 +291,21 @@ def type_record(
     def tab_once():
         pyautogui.press("tab")
         settle()
+
+    def tab_jump(n: int):
+        """Press Tab `n` times, then (if enabled) recover from a swallowed
+        Tab by sending more until focus is back in a text field."""
+        for _ in range(max(0, int(n))):
+            tab_once()
+        if not detect_text_field:
+            return
+        extra = 0
+        while extra < max_extra_tabs:
+            if focus_is_text_field() is False:
+                tab_once()
+                extra += 1
+            else:
+                break  # in a text field, or focus unknown -> stop
 
     def put_register(value: str):
         if value == "":
@@ -309,21 +335,15 @@ def type_record(
     put_typed(second_value)
     enter_once()
 
-    # Step 3: Tab-jump, then fixed third value, then Enter(s)
-    for _ in range(max(0, int(tab_count))):
-        tab_once()
-
-    if detect_text_field:
-        # If the caret didn't land in a text field, the form ate a Tab; send
-        # more until we're in a field (capped) or focus is unreadable.
-        extra = 0
-        while extra < max_extra_tabs:
-            if focus_is_text_field() is False:
-                tab_once()
-                extra += 1
-            else:
-                break  # in a text field, or focus unknown -> stop
-
+    # Step 3: Tab-jump, then fixed third value
+    tab_jump(tab_count)
     put_typed(third_value)
+
+    # Step 3b (optional): one more Tab-jump, one more fixed value
+    if fill_fourth_field:
+        tab_jump(tabs_after_third)
+        put_typed(fourth_value)
+
+    # Step 4: Enter(s)
     for _ in range(max(1, int(enters_after_third))):
         enter_once()
