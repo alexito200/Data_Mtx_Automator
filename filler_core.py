@@ -332,6 +332,8 @@ def type_record(
     # Step 1: Register #
     put_register(register)
     enter_once()
+091126
+
 
     # Step 2: fixed second value
     put_typed(second_value)
