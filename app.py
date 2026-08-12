@@ -38,10 +38,12 @@ remote/cloud server.
 2. Click into the **Register #** field of the form in your browser.
 3. Pick a record here and click **Fill** — you get a short countdown to
    switch back to the browser, then it enters: *Register # → Enter → "1" →
-   Enter → Tab ×7 → "081926" → Enter ×2*.
+   Enter → Tab ×7 → "081926" → (optionally: Tab ×1 → one more value) →
+   Enter ×2*.
 
-**Field 2/3 values, the Tab count, and the final Enter count are all
-editable below** in case the destination form changes.
+**All of it is editable below** — field 2/3/4 values, every Tab count, the
+final Enter count, and whether field 4 happens at all — in case the
+destination form changes.
 
 **Abort anytime:** slam your mouse into any screen corner to stop typing.
         """
@@ -150,6 +152,29 @@ enters_after_third = c4.number_input(
     help="The destination form needs Enter pressed twice by default to "
     "finish the record.",
 )
+
+fill_fourth_field = st.checkbox(
+    "Also fill a field right after field 3",
+    value=True,
+    help="Inserts one more Tab-jump and one more fixed value between field "
+    "3 and the Enter presses above. Turn off to leave the sequence exactly "
+    "as it was (stop after field 3).",
+)
+if fill_fourth_field:
+    c5, c6 = st.columns(2)
+    tabs_after_third = c5.number_input(
+        "Tabs to reach field 4",
+        1, 30, 1,
+        help="How many times Tab is pressed after field 3 to reach field 4.",
+    )
+    fourth_value = c6.text_input(
+        "Value typed into field 4",
+        "",
+        help="Typed the same for every record, right before the Enter "
+        "presses above run.",
+    )
+else:
+    tabs_after_third, fourth_value = 1, ""
 
 entry_mode_choice = st.radio(
     "How to enter the Register # itself",
@@ -276,6 +301,9 @@ def run_fill(indices):
                 second_value=second_value,
                 third_value=third_value,
                 tab_count=int(tab_count),
+                fill_fourth_field=fill_fourth_field,
+                fourth_value=fourth_value,
+                tabs_after_third=int(tabs_after_third),
                 enters_after_third=int(enters_after_third),
                 register_entry_mode=register_entry_mode,
                 interval=float(interval),
