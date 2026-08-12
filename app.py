@@ -39,7 +39,8 @@ remote/cloud server.
 3. Pick a record here and click **Fill** — you get a short countdown to
    switch back to the browser, then it enters: *Register # → Enter → "1" →
    Enter → Tab ×7 → field 8's value → (optionally: straight into field 9,
-   no Tab needed — the form auto-advances) → Enter ×2*.
+   no Tab needed — the form auto-advances, then Ctrl/Cmd+A selects
+   whatever's already there before typing over it) → Enter ×2*.
 
 **All of it is editable below** — field 2/8/9 values, every Tab count, the
 final Enter count, and whether field 9 happens at all — in case the
@@ -190,8 +191,9 @@ if fill_field9:
     field9_value = c6.text_input(
         "Value typed into field 9",
         "",
-        help="Typed the same for every record, right before the Enter "
-        "presses below run.",
+        help="Select-all (Ctrl/Cmd+A) runs first so this replaces whatever's "
+        "already in the field, then it's typed the same for every record, "
+        "right before the Enter presses below run.",
     )
 else:
     tabs_after_field8, field9_value = 0, ""
