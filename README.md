@@ -72,8 +72,19 @@ pick back up without re-entering anything already done.
 | --- | --- |
 | 1 | Register # is entered into the focused field, then **Enter** |
 | 2 | The fixed **field 2 value** ("1" by default) is typed, then **Enter** |
-| 3 | **Tab** is pressed 7 times (adjustable) to reach the next field |
-| 4 | The fixed **field 3 value** ("081926" by default) is typed, then **Enter** is pressed twice (adjustable) |
+| 3 | **Tab** is pressed 7 times (adjustable) to reach field 3, then the fixed **field 3 value** ("081926" by default) is typed |
+| 3b *(optional)* | **Tab** is pressed 1 more time (adjustable) to reach field 4, then the fixed **field 4 value** is typed |
+| 4 | **Enter** is pressed twice (adjustable) |
+
+Step 3b is controlled by **"Also fill a field right after field 3"** — on by
+default. Turn it off to stop at field 3, exactly like before this option
+existed. When it's on, field 4's Tab count and value are both editable, same
+as field 3's.
+
+**Enter always runs last**, whichever field ends up being the last one — the
+"Enter presses" control sits below the field-4 settings for that reason, and
+its label switches between *"after field 3"* and *"after field 4"* to match.
+Same count, same setting, it just fires later when field 4 is turned on.
 
 The app then moves to the next record and repeats.
 

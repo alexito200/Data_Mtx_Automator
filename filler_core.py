@@ -231,7 +231,7 @@ def type_record(
     fill_fourth_field: bool = False,
     fourth_value: str = "",
     tabs_after_third: int = 1,
-    enters_after_third: int = 2,
+    final_enters: int = 2,
     register_entry_mode: str = "paste",  # "paste" or "type"
     interval: float = 0.0,
     field_delay: float = 0.0,
@@ -247,7 +247,8 @@ def type_record(
            third_value     ("081926" by default)
         3b. [optional, fill_fourth_field] Tab x tabs_after_third (1 by
             default) to reach one more field, then fourth_value
-        4. Enter x enters_after_third (2 by default)
+        4. Enter x final_enters (2 by default) — fires after step 3b when
+           fill_fourth_field is on, otherwise right after step 3
 
     register_entry_mode="paste" copies `register` to the clipboard and sends
     Ctrl+V (Cmd+V on macOS) instead of typing it character by character,
@@ -256,9 +257,10 @@ def type_record(
     "type" in the described flow.
 
     fill_fourth_field toggles step 3b on/off. When off, the sequence is
-    exactly steps 1-3 then the Enter(s) — nothing about the existing flow
+    exactly steps 1-3 then final_enters — nothing about the existing flow
     changes. When on, one more Tab-hop and one more fixed value are inserted
-    right before those same Enter(s).
+    right before those same Enter(s), which is why final_enters always runs
+    last regardless of the toggle.
 
     field_delay pauses briefly after each typed/pasted value, after each
     Enter, and after each Tab. On forms that run JavaScript per field
@@ -345,5 +347,5 @@ def type_record(
         put_typed(fourth_value)
 
     # Step 4: Enter(s)
-    for _ in range(max(1, int(enters_after_third))):
+    for _ in range(max(1, int(final_enters))):
         enter_once()

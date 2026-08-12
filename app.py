@@ -140,24 +140,17 @@ third_value = c2.text_input(
     "Enter-count field below).",
 )
 
-c3, c4 = st.columns(2)
-tab_count = c3.number_input(
+tab_count = st.number_input(
     "Tabs to reach field 3",
     1, 30, 7,
     help="How many times Tab is pressed after field 2 to reach field 3.",
-)
-enters_after_third = c4.number_input(
-    "Enter presses after field 3",
-    1, 5, 2,
-    help="The destination form needs Enter pressed twice by default to "
-    "finish the record.",
 )
 
 fill_fourth_field = st.checkbox(
     "Also fill a field right after field 3",
     value=True,
     help="Inserts one more Tab-jump and one more fixed value between field "
-    "3 and the Enter presses above. Turn off to leave the sequence exactly "
+    "3 and the Enter presses below. Turn off to leave the sequence exactly "
     "as it was (stop after field 3).",
 )
 if fill_fourth_field:
@@ -171,10 +164,19 @@ if fill_fourth_field:
         "Value typed into field 4",
         "",
         help="Typed the same for every record, right before the Enter "
-        "presses above run.",
+        "presses below run.",
     )
 else:
     tabs_after_third, fourth_value = 1, ""
+
+final_enters = st.number_input(
+    "Enter presses after field 4" if fill_fourth_field else "Enter presses after field 3",
+    1, 5, 2,
+    help="Runs last, after whichever field is actually last in the "
+    "sequence above (field 4 when that toggle is on, otherwise field 3). "
+    "The destination form needs Enter pressed twice by default to finish "
+    "the record.",
+)
 
 entry_mode_choice = st.radio(
     "How to enter the Register # itself",
@@ -304,7 +306,7 @@ def run_fill(indices):
                 fill_fourth_field=fill_fourth_field,
                 fourth_value=fourth_value,
                 tabs_after_third=int(tabs_after_third),
-                enters_after_third=int(enters_after_third),
+                final_enters=int(final_enters),
                 register_entry_mode=register_entry_mode,
                 interval=float(interval),
                 field_delay=float(field_delay),
