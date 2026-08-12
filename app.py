@@ -38,11 +38,11 @@ remote/cloud server.
 2. Click into the **Register #** field of the form in your browser.
 3. Pick a record here and click **Fill** — you get a short countdown to
    switch back to the browser, then it enters: *Register # → Enter → "1" →
-   Enter → Tab ×7 → "081926" → (optionally: Tab ×1 → one more value) →
-   Enter ×2*.
+   Enter → Tab ×7 → field 8's value → (optionally: straight into field 9,
+   no Tab needed — the form auto-advances) → Enter ×2*.
 
-**All of it is editable below** — field 2/3/4 values, every Tab count, the
-final Enter count, and whether field 4 happens at all — in case the
+**All of it is editable below** — field 2/8/9 values, every Tab count, the
+final Enter count, and whether field 9 happens at all — in case the
 destination form changes.
 
 **Abort anytime:** slam your mouse into any screen corner to stop typing.
@@ -75,7 +75,32 @@ if method.startswith("Upload"):
     up = st.file_uploader("Upload your Register # file", type=["xlsx", "xlsm"])
     if up is not None:
         try:
-            label, records = core.parse_excel(up)
+            xls = pd.ExcelFile(up, engine="openpyxl")
+            sheet_info = core.list_register_sheets(xls)
+            if not sheet_info:
+                st.error(
+                    "No sheet in that workbook has a column header containing "
+                    "\"register\". Double-check the file, or use Paste data "
+                    "instead."
+                )
+            else:
+                counts = {name: (nb, uniq) for name, nb, uniq in sheet_info}
+                sheet_names = list(counts.keys())
+                chosen_sheet = st.selectbox(
+                    "Which sheet has your Register # list?",
+                    sheet_names,
+                    index=0,
+                    format_func=lambda n: f"{n}  —  {counts[n][1]} unique / {counts[n][0]} filled",
+                    help="This workbook has more than one sheet with a "
+                    "\"register\"-ish column — auto-picked the one with the "
+                    "most distinct values (a sheet that repeats the same "
+                    "value, like a drill-through for one record, sorts "
+                    "lower even if it has more rows). Change it if this "
+                    "isn't the right one." if len(sheet_names) > 1 else
+                    "The only sheet in this workbook with a "
+                    "\"register\"-ish column.",
+                )
+                label, records = core.parse_excel(xls, sheet_name=chosen_sheet)
         except Exception as exc:
             st.error(f"Could not read that file: {exc}")
 else:
@@ -133,47 +158,49 @@ second_value = c1.text_input(
     "1",
     help="Typed the same for every record, then Enter is pressed.",
 )
-third_value = c2.text_input(
-    "Value typed after the Tab-jump (field 3)",
+field8_value = c2.text_input(
+    "Value typed after the Tab-jump (field 8)",
     "081926",
     help="Typed the same for every record, then Enter is pressed (see the "
     "Enter-count field below).",
 )
 
-tab_count = st.number_input(
-    "Tabs to reach field 3",
+tabs_to_field8 = st.number_input(
+    "Tabs to reach field 8",
     1, 30, 7,
-    help="How many times Tab is pressed after field 2 to reach field 3.",
+    help="How many times Tab is pressed after field 2 to reach field 8.",
 )
 
-fill_fourth_field = st.checkbox(
-    "Also fill a field right after field 3",
+fill_field9 = st.checkbox(
+    "Also fill a field right after field 8",
     value=True,
-    help="Inserts one more Tab-jump and one more fixed value between field "
-    "3 and the Enter presses below. Turn off to leave the sequence exactly "
-    "as it was (stop after field 3).",
+    help="Inserts one more fixed value between field 8 and the Enter "
+    "presses below. Turn off to leave the sequence exactly as it was (stop "
+    "after field 8).",
 )
-if fill_fourth_field:
+if fill_field9:
     c5, c6 = st.columns(2)
-    tabs_after_third = c5.number_input(
-        "Tabs to reach field 4",
-        1, 30, 1,
-        help="How many times Tab is pressed after field 3 to reach field 4.",
+    tabs_after_field8 = c5.number_input(
+        "Tabs to reach field 9",
+        0, 30, 0,
+        help="0 by default: the form highlights field 9 on its own once "
+        "field 8 is filled, so no Tab is needed. Raise this only if that "
+        "stops being true.",
     )
-    fourth_value = c6.text_input(
-        "Value typed into field 4",
+    field9_value = c6.text_input(
+        "Value typed into field 9",
         "",
         help="Typed the same for every record, right before the Enter "
         "presses below run.",
     )
 else:
-    tabs_after_third, fourth_value = 1, ""
+    tabs_after_field8, field9_value = 0, ""
 
 final_enters = st.number_input(
-    "Enter presses after field 4" if fill_fourth_field else "Enter presses after field 3",
+    "Enter presses after field 9" if fill_field9 else "Enter presses after field 8",
     1, 5, 2,
     help="Runs last, after whichever field is actually last in the "
-    "sequence above (field 4 when that toggle is on, otherwise field 3). "
+    "sequence above (field 9 when that toggle is on, otherwise field 8). "
     "The destination form needs Enter pressed twice by default to finish "
     "the record.",
 )
@@ -214,7 +241,7 @@ field_delay = t3.number_input(
 with st.expander("Tab glitch fix (optional)"):
     st.caption(
         "If the destination form ever swallows a Tab during the 7-tab jump, "
-        "field 3 lands in the wrong box. Two ways to guard against it:"
+        "field 8 lands in the wrong box. Two ways to guard against it:"
     )
     detect_text_field = st.checkbox(
         "Auto-detect lost focus and re-Tab (recommended, Windows)", value=False,
@@ -236,7 +263,7 @@ with st.expander("Tab glitch fix (optional)"):
     st.markdown("---")
     st.caption(
         "Simplest fallback: if the form always eats exactly one Tab, just "
-        "raise \"Tabs to reach field 3\" above by one instead of relying on "
+        "raise \"Tabs to reach field 8\" above by one instead of relying on "
         "detection."
     )
 
@@ -301,11 +328,11 @@ def run_fill(indices):
             core.type_record(
                 records[idx],
                 second_value=second_value,
-                third_value=third_value,
-                tab_count=int(tab_count),
-                fill_fourth_field=fill_fourth_field,
-                fourth_value=fourth_value,
-                tabs_after_third=int(tabs_after_third),
+                field8_value=field8_value,
+                tabs_to_field8=int(tabs_to_field8),
+                fill_field9=fill_field9,
+                field9_value=field9_value,
+                tabs_after_field8=int(tabs_after_field8),
                 final_enters=int(final_enters),
                 register_entry_mode=register_entry_mode,
                 interval=float(interval),

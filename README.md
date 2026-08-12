@@ -3,9 +3,10 @@
 A small local Streamlit app that types a list of **Register #** values into a
 browser form for you. For each record it enters the Register #, presses
 **Enter**, types **"1"**, presses **Enter**, presses **Tab seven times** to
-reach the next field, types **"081926"**, and finishes with **Enter twice**.
-The two typed values, the Tab count, and the final Enter count are all
-adjustable from the app.
+reach field 8, types field 8's value, then (since the form auto-advances) it
+goes straight into typing field 9's value with no extra Tab, and finishes
+with **Enter twice**. The typed values, the Tab counts, and the final Enter
+count are all adjustable from the app.
 
 ---
 
@@ -72,19 +73,20 @@ pick back up without re-entering anything already done.
 | --- | --- |
 | 1 | Register # is entered into the focused field, then **Enter** |
 | 2 | The fixed **field 2 value** ("1" by default) is typed, then **Enter** |
-| 3 | **Tab** is pressed 7 times (adjustable) to reach field 3, then the fixed **field 3 value** ("081926" by default) is typed |
-| 3b *(optional)* | **Tab** is pressed 1 more time (adjustable) to reach field 4, then the fixed **field 4 value** is typed |
+| 3 | **Tab** is pressed 7 times (adjustable) to reach field 8, then the fixed **field 8 value** ("081926" by default) is typed |
+| 3b *(optional)* | No Tab needed — the form highlights field 9 on its own — then the fixed **field 9 value** is typed straight away |
 | 4 | **Enter** is pressed twice (adjustable) |
 
-Step 3b is controlled by **"Also fill a field right after field 3"** — on by
-default. Turn it off to stop at field 3, exactly like before this option
-existed. When it's on, field 4's Tab count and value are both editable, same
-as field 3's.
+Step 3b is controlled by **"Also fill a field right after field 8"** — on by
+default. Turn it off to stop at field 8, exactly like before this option
+existed. When it's on, field 9's value is editable, same as field 8's — and
+if the auto-advance to field 9 ever stops happening on its own, "Tabs to
+reach field 9" can be raised above its default of 0.
 
 **Enter always runs last**, whichever field ends up being the last one — the
-"Enter presses" control sits below the field-4 settings for that reason, and
-its label switches between *"after field 3"* and *"after field 4"* to match.
-Same count, same setting, it just fires later when field 4 is turned on.
+"Enter presses" control sits below the field-9 settings for that reason, and
+its label switches between *"after field 8"* and *"after field 9"* to match.
+Same count, same setting, it just fires later when field 9 is turned on.
 
 The app then moves to the next record and repeats.
 
@@ -95,20 +97,23 @@ description. Switch to **"Type it"** in the app if your form doesn't behave
 well with pasted input — that mode needs no extra setup, while paste mode
 needs the `pyperclip` package (already listed in `requirements.txt`).
 
-**Field 2's value, field 3's value, the Tab count, and the Enter count after
-field 3 are all editable** under "2) Fixed values & field navigation" in case
-the destination form changes.
-
 ---
 
 ## Data format
 
-The Excel reader looks for a column whose header contains "register"
-(case-insensitive) — matching a header like `Register #` — and reads every
-non-empty value below it as one record. If no such header is found, it falls
-back to the first column. Values are used exactly as stored (e.g.
-`9883840-2`) — no reformatting, since the test file already stores them as
-plain text with the hyphen included.
+Workbooks can have more than one sheet, and more than one sheet can contain
+something that looks like a Register # column — pivot-table drill-throughs,
+one-off breakdowns, the actual master list. The app scans **every** sheet,
+finds each one with a column header containing "register" (case-insensitive,
+matching something like `Register #`), and ranks them by how many *distinct*
+values sit below that header — a sheet that repeats the same value over and
+over (a drill-through for one record) ranks behind a genuine list of
+different ones, even if it happens to have more rows. It auto-picks the
+top-ranked sheet and shows a dropdown with every candidate and its counts, so
+you can see what was picked and override it if it's the wrong one.
+
+Within the chosen sheet, values are used exactly as stored (e.g.
+`9883840-2`) — no reformatting.
 
 For pasted data, put one Register # per line. If a line has extra
 Tab/comma-separated columns, only the first is used. Tick *"First pasted row
@@ -123,7 +128,7 @@ it to keep every row, including repeats.
 
 ## Tab glitch fix (optional)
 
-If the destination form ever swallows a Tab during the 7-tab jump, field 3
+If the destination form ever swallows a Tab during the 7-tab jump, field 8
 lands in the wrong box. In the **"Tab glitch fix"** expander:
 
 **1. Auto-detect lost focus (recommended, Windows only).** Turn on
@@ -140,7 +145,7 @@ pip install uiautomation
 reason, it safely does nothing extra.
 
 **2. Simplest fallback.** If the form always eats exactly one Tab, just raise
-**"Tabs to reach field 3"** by one instead of relying on detection.
+**"Tabs to reach field 8"** by one instead of relying on detection.
 
 ---
 
